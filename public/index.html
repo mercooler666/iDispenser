@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iDispenser - Fast File Sharing</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Leaflet for interactive connection map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <!-- Neon background ambient glow orbs -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="glass-card header">
+      <div class="brand">
+        <div class="logo-icon">⚡</div>
+        <div>
+          <div class="brand-title-row">
+            <h1>iDispenser</h1>
+            <span class="role-badge" id="myRoleBadge">👤 User</span>
+          </div>
+          <p class="subtitle" id="headerSubtitle">Gigabit Wi-Fi transfer & 1-click internet access</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <!-- PayPal Donate Button -->
+        <button class="btn-donate" id="btnOpenDonate" onclick="openDonateModal()" title="Support Developer via PayPal">
+          <span class="donate-icon">💛</span>
+          <span id="lblDonate">Donate</span>
+        </button>
+
+        <!-- Real-time Ping Latency Badge -->
+        <div class="ping-badge" id="pingBadge" title="Network Latency">
+          <span class="ping-dot" id="pingDot"></span>
+          <span id="pingValue">-- ms</span>
+        </div>
+
+        <!-- Language Switcher Dropdown -->
+        <div class="lang-switcher">
+          <select id="langSelect" class="lang-select" aria-label="Select Language">
+            <option value="en">🇺🇸 EN</option>
+            <option value="uk">🇺🇦 UA</option>
+            <option value="ru">🇷🇺 RU</option>
+            <option value="de">🇩🇪 DE</option>
+            <option value="it">🇮🇹 IT</option>
+          </select>
+        </div>
+        <div class="sync-status">
+          <span class="live-dot"></span>
+          <span id="syncText">Shared folder active</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Network Connections Grid (Wi-Fi & Internet Tunnel) -->
+    <div class="network-grid" id="networkGrid">
+      <!-- Wi-Fi Card (Mac / iPhone / LAN) -->
+      <div class="glass-card net-card">
+        <div class="net-card-header">
+          <div class="net-title">
+            <span class="badge badge-wifi" id="lblWifiBadge">Local Wi-Fi</span>
+            <span class="speed-hint" id="lblSpeedHint">🚀 Up to 1 Gbps</span>
+          </div>
+          <button class="icon-btn" id="btnShowLocalQr" title="Show QR Code">📱 QR</button>
+        </div>
+        <div class="url-box">
+          <input type="text" id="localUrlInput" readonly value="http://192.168.x.x:5050">
+          <button class="btn btn-secondary" id="btnCopyLocal" onclick="copyText('localUrlInput')">Copy</button>
+        </div>
+        <p class="net-desc" id="lblWifiDesc">All devices on the local Wi-Fi network automatically receive Administrator rights.</p>
+      </div>
+
+      <!-- Tunnel Card (Internet Remote Access) -->
+      <div class="glass-card net-card" id="tunnelCard">
+        <div class="net-card-header">
+          <div class="net-title">
+            <span class="badge badge-tunnel" id="tunnelBadge">Internet Access</span>
+            <span id="tunnelStatusText">Off</span>
+          </div>
+          <button class="btn btn-primary" id="btnToggleTunnel">Turn On in 1-Click</button>
+        </div>
+
+        <div class="provider-row" id="providerRow">
+          <label for="tunnelProviderSelect" id="lblTunnelProvider">Tunnel service:</label>
+          <select id="tunnelProviderSelect" class="provider-select">
+            <option value="serveo">⚡ Serveo (Fast HTTPS, recommended)</option>
+            <option value="cloudflare">🌐 Cloudflare (trycloudflare)</option>
+            <option value="localtunnel">🔗 Localtunnel (loca.lt)</option>
+          </select>
+        </div>
+
+        <div id="tunnelActiveBlock" class="hidden">
+          <div class="url-box">
+            <input type="text" id="tunnelUrlInput" readonly value="">
+            <button class="btn btn-secondary" id="btnCopyTunnelUrl" onclick="copyText('tunnelUrlInput')">Link</button>
+            <button class="icon-btn" id="btnShowTunnelQr" title="QR Code">📱</button>
+          </div>
+          <div class="pin-badge-wrapper">
+            <span id="lblFriendPin">PIN for friend:</span>
+            <span class="pin-display" id="tunnelPinDisplay">0000</span>
+            <button class="btn btn-sm btn-secondary" id="btnCopyShare" onclick="copyShareText()">Copy All</button>
+          </div>
+        </div>
+
+        <div id="tunnelLoadingBlock" class="hidden loading-row">
+          <div class="spinner"></div>
+          <span id="tunnelLoadingMsg">Starting tunnel...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN PANEL: Map & Session Monitoring (Exclusively visible to Administrators) -->
+    <div class="glass-card admin-panel hidden" id="adminPanel">
+      <div class="admin-panel-header">
+        <div class="admin-panel-title">
+          <h2 id="lblAdminTitle">🛡️ Connection & User Monitoring</h2>
+          <span class="admin-badge" id="lblAdminBadge">Administrator</span>
+        </div>
+        <div class="admin-stats-summary">
+          <span class="stat-pill"><span id="lblStatActive">👥 Online:</span> <strong id="statActiveCount">0</strong></span>
+          <span class="stat-pill"><span id="lblStatLocal">🏠 Local:</span> <strong id="statLocalCount">0</strong></span>
+          <span class="stat-pill"><span id="lblStatGuest">🌐 External:</span> <strong id="statGuestCount">0</strong></span>
+          <span class="stat-pill stat-transfers-pill"><span id="lblStatTransfers">⚡ Transfers:</span> <strong id="statTransferCount">0</strong></span>
+        </div>
+      </div>
+
+      <!-- Interactive Connection Map -->
+      <div class="map-wrapper">
+        <div id="adminMap" class="admin-map"></div>
+        <div class="map-legend">
+          <span id="lblLegendServer"><span class="dot-legend dot-home"></span> Server (You)</span>
+          <span id="lblLegendGuest"><span class="dot-legend dot-guest"></span> Connected Users</span>
+        </div>
+      </div>
+
+      <!-- Real-time Active Connected Users List -->
+      <div class="admin-users-section">
+        <h3 id="lblSessionsTitle">Real-time active sessions:</h3>
+        <div class="admin-users-list" id="adminUsersList">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Drag & Drop Upload Zone -->
+    <div class="glass-card dropzone" id="dropzone">
+      <input type="file" id="fileInput" multiple class="hidden">
+      <div class="drop-content">
+        <div class="drop-icon">📂</div>
+        <h3 id="dropTitle">Drag and drop files here or <span class="accent-text">browse from disk</span></h3>
+        <p id="dropSubtitle">Files are saved to <code>shared/</code> folder and instantly available to all connected peers</p>
+      </div>
+      <!-- Upload Progress Bar -->
+      <div id="uploadProgressContainer" class="hidden upload-progress">
+        <div class="progress-info">
+          <span id="uploadFileName">Uploading...</span>
+          <span id="uploadSpeed">0 MB/s</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="uploadProgressBar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Files Section -->
+    <div class="glass-card files-section">
+      <div class="files-header">
+        <div class="files-title">
+          <h2 id="filesSectionTitle"><span id="filesSectionTitleText">Files in Distribution</span> (<span id="filesCount">0</span>)</h2>
+          <span class="total-size" id="totalSizeText">0 MB</span>
+        </div>
+        <div class="files-controls">
+          <button class="btn btn-primary btn-new-folder" id="btnNewFolder">📁+ <span id="lblNewFolder">+ New Folder</span></button>
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search files...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Breadcrumbs navigation bar -->
+      <div class="breadcrumbs-bar" id="breadcrumbsBar">
+        <span class="crumb-current">📁 Shared</span>
+      </div>
+
+      <div class="files-list" id="filesList">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Footer with Support / Donate Button -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span>⚡ iDispenser • High-Speed P2P & LAN File Sharing</span>
+      </div>
+      <div class="footer-right">
+        <button class="footer-donate-btn" onclick="openDonateModal()" id="btnFooterDonate">
+          <span>💛 Support Developer (PayPal)</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal: Create Folder -->
+  <div class="modal hidden" id="folderModal">
+    <div class="glass-card modal-content modal-folder">
+      <h3 id="lblCreateFolderTitle">📁 Create Shared Folder</h3>
+      <p id="lblCreateFolderSub">Enter folder name to share with everyone:</p>
+      <input type="text" id="folderNameInput" class="modal-input" placeholder="Folder name..." maxlength="60">
+      <div class="modal-btn-row">
+        <button class="btn btn-secondary" onclick="closeFolderModal()" id="btnCancelFolder">Cancel</button>
+        <button class="btn btn-primary" id="btnSubmitFolder">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Rename Item -->
+  <div class="modal hidden" id="renameModal">
+    <div class="glass-card modal-content modal-folder">
+      <h3 id="lblRenameTitle">✏️ Rename</h3>
+      <p id="lblRenameSub">Enter new name:</p>
+      <input type="text" id="renameInput" class="modal-input" placeholder="New name..." maxlength="80">
+      <div class="modal-btn-row">
+        <button class="btn btn-secondary" onclick="closeRenameModal()" id="btnCancelRename">Cancel</button>
+        <button class="btn btn-primary" id="btnSubmitRename">Rename</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: PayPal Donation -->
+  <div class="modal hidden" id="donateModal">
+    <div class="glass-card modal-content modal-donate">
+      <div class="donate-header">
+        <div class="donate-icon-badge">💛</div>
+        <h3 id="lblDonateModalTitle">Support Developer via PayPal</h3>
+      </div>
+      <p id="lblDonateModalSub" class="donate-desc">
+        If you find iDispenser helpful, consider supporting its active development!
+      </p>
+      <div class="donate-box">
+        <span class="donate-box-label">PayPal Account:</span>
+        <div class="donate-email-row">
+          <code id="donateEmailVal">mercooler666@gmail.com</code>
+          <button class="btn btn-secondary btn-sm" id="btnCopyDonateEmail" onclick="copyDonateEmail()">📋 Copy</button>
+        </div>
+      </div>
+      <div class="donate-actions">
+        <a href="https://www.paypal.com/donate/?business=mercooler666@gmail.com&no_recurring=0&currency_code=USD" target="_blank" rel="noopener noreferrer" class="btn btn-donate-action" id="btnGoPaypal">
+          <span>💛 Open PayPal ($ USD)</span>
+        </a>
+        <button class="btn btn-secondary" onclick="closeDonateModal()" id="btnCloseDonate">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div class="modal hidden" id="qrModal">
+    <div class="glass-card modal-content">
+      <h3 id="qrModalTitle">Scan with phone</h3>
+      <img id="qrModalImg" src="" alt="QR Code">
+      <p id="qrModalSub">Opens download and upload interface</p>
+      <button class="btn btn-secondary" id="btnQrClose" onclick="closeQrModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- PIN Entry Modal (For external guest users) -->
+  <div class="pin-overlay hidden" id="pinOverlay">
+    <div class="glass-card pin-card">
+      <div class="logo-icon">🔒</div>
+      <h2 id="lblPinTitle">Access Protected</h2>
+      <p id="lblPinDesc">Enter the 4-digit PIN code provided by the host:</p>
+      <div class="pin-inputs">
+        <input type="password" maxlength="4" id="pinInput" placeholder="••••" autofocus>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnSubmitPin">Access Files</button>
+      <p class="pin-error hidden" id="pinError">Invalid PIN code</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

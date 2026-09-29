@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+
+# Git data directory
+.git_repo/
+
+# Temporary upload chunks
+.temp_uploads/
+
+# Binaries & Tunnels
+bin/cloudflared.exe
+bin/cloudflared
+bin/*.exe
+
+# Shared storage contents (keep Welcome.txt and .gitkeep)
+shared/*
+!shared/Welcome.txt
+!shared/.gitkeep
+
+# Local runtime data & logs
+disabled_files.json
+promoted_admins.json
+*.log
+
+# Personal files & office documents
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.pptx
+*.ppt
+*.pdf
+
+# Windows machine-specific shortcuts
+*.lnk
+*.url
+
+# Archives, backups & temporary files
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bak
+*.tmp
+*.swp
+
+# Environment, secrets & credentials
+.env
+.env.*
+*.key
+*.pem
+*.crt
+*.pfx
+*.p12
+
+# OS & IDE files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+.vscode/
+.idea/
+*.suo
+*.user
+
+

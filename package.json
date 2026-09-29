@@ -1,0 +1,23 @@
+{
+  "name": "idispenser",
+  "version": "1.0.0",
+  "description": "Ultra-fast local & remote file dispenser with Cloudflare Tunnel & live sync",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Artem (mercooler666) <mercooler666@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mercooler666/iDispenser.git"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "express": "^4.19.2",
+    "localtunnel": "^2.0.2",
+    "multer": "^1.4.5-lts.1",
+    "qrcode": "^1.5.3",
+    "ws": "^8.17.0"
+  }
+}
